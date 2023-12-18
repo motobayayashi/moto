@@ -1,0 +1,66 @@
+import requests
+import json
+import folium
+import time
+
+# domain = 'https://api.mloca.com '     # 本番環境
+domain = 'https://apitest.mloca.com'  # テスト環境
+
+url = '{}/v2/auth/login'.format(domain)
+
+client_code = 'AC23100001'  # クライアントコードキー
+api_key = 'YdONq5HmS92kGjj-o1y8QJ6KTRl1Y1QGqUc4PABTJmI.'  # APIキー
+
+# 送信データ
+post_data = {
+    'client': client_code,
+    'key': api_key,
+    'ver': '2.0'
+}
+
+login = requests.post(url, data=post_data)  # POSTリクエストを出す
+#print(login.status_code)  # 正常ならば200が返される
+#print(login.text)  # レスポンス内容
+
+# 文字列データをPythonの辞書に変換
+data = json.loads(login.text)
+
+# "token"の値を抽出
+token = data["token"]
+
+url = '{}/v2/mobile/states'.format(domain)
+
+# パラメータ
+get_parameter = {
+    'token': token,
+    'ver': '2.0'
+}
+
+while True:
+    try:
+        response = requests.get(url, params=get_parameter)  # POSTリクエスト
+        #print(response.status_code)
+        #print(response.text)
+
+        # 文字列データをPythonの辞書に変換
+        data2 = json.loads(response.text)
+        # 緯度・経度の値を抽出
+        la = data2["states"][0]["lat"]
+        lo = data2["states"][0]["lon"]
+        lat = la/3600000
+        lon = lo/3600000
+
+        # 地図を生成
+        m = folium.Map(location=[lat, lon], zoom_start=13)
+
+        # アイコンをプロット
+        icon = folium.Marker(location=[lat, lon])
+        icon.add_to(m)
+
+        # 地図をHTMLファイルとして保存
+        m.save('map.html')
+
+        time.sleep(120)  # 2分間待機
+    except KeyboardInterrupt:
+        print("プログラムを停止しました。")
+        break
